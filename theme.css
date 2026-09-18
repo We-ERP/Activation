@@ -1,0 +1,96 @@
+/* Theme controls and accessible light-mode palette.
+   The existing app.js and data logic remain unchanged. */
+
+.topline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 5px 10px 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .15s var(--ease), background .15s var(--ease), color .15s var(--ease);
+}
+.theme-switch:hover { border-color: var(--amber); color: var(--text); }
+.theme-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.theme-switch-track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background .2s var(--ease);
+}
+.theme-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform .2s var(--ease), background .2s var(--ease);
+}
+.theme-switch input:focus-visible + .theme-switch-track { outline: 2px solid var(--amber); outline-offset: 2px; }
+.theme-switch-label { font-size: 12px; font-weight: 600; min-width: 38px; text-align: center; }
+.theme-light-label { display: none; }
+
+/* Light mode is activated by the checkbox without changing application logic. */
+body:has(#themeToggle:checked) {
+  --bg: #f4f7fb;
+  --bg-grain: #e9eef6;
+  --panel: #ffffff;
+  --panel-2: #f1f5fa;
+  --panel-raised: #e7edf5;
+  --border: #c7d2e2;
+  --border-soft: #dce4ef;
+  --text: #172235;
+  --text-dim: #52627a;
+  --text-faint: #728198;
+  --amber: #b85b00;
+  --amber-ink: #ffffff;
+  --amber-dim: rgba(184,91,0,.13);
+  --teal: #087f78;
+  --violet: #6354c6;
+  --pink: #c33b7d;
+  --blue: #1769aa;
+  --green: #087f55;
+  --gold: #956f00;
+  --good: #087f55;
+  --bad: #bd2638;
+  --warn: #956f00;
+  --shadow-sm: 0 1px 3px rgba(30,50,80,.10);
+  --shadow-md: 0 8px 24px rgba(30,50,80,.14);
+  --shadow-glow: 0 0 0 1px rgba(184,91,0,.16), 0 8px 24px -8px rgba(184,91,0,.22);
+}
+
+body:has(#themeToggle:checked) .theme-switch-track { background: var(--amber); }
+body:has(#themeToggle:checked) .theme-switch-thumb { transform: translateX(14px); background: #fff; }
+body:has(#themeToggle:checked) .theme-dark-label { display: none; }
+body:has(#themeToggle:checked) .theme-light-label { display: inline; }
+body:has(#themeToggle:checked) .brand h1 .amp { color: var(--amber); }
+
+@media (max-width: 760px) {
+  .topline-actions { width: 100%; justify-content: space-between; }
+}
