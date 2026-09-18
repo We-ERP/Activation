@@ -16,13 +16,21 @@ let RAW_ROWS = [];
 let GLOBAL_DATA = {};
 let GLOBAL_HOURS = [];
 
+// These users are excluded completely from the dashboard and all calculations.
+const IGNORED_USERS = new Set([
+  "AS93748",
+  "ZEINAB.AHMED",
+  "GS98056",
+  "MM07371"
+]);
+
 // IDs in the CSV are not consistently cased (for example ke144207 vs KE144207).
-// Normalize only the lookup key; displayed names and all calculations stay unchanged.
 function normalizeAgentId(value){
   return (value ?? '').toString().trim().replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/\s+/g, '').toUpperCase();
 }
 
 function cleanValue(value){ return (value ?? '').toString().trim(); }
+function isIgnoredUser(value){ return IGNORED_USERS.has(normalizeAgentId(value)); }
 
 function setStatus(kind, text){
   const pill = document.getElementById('syncPill');
@@ -43,7 +51,7 @@ async function syncMapping(){
       const vals = Object.values(record);
       const user = cleanValue(vals[COL_USER]);
       const key = normalizeAgentId(user);
-      if(!key) return;
+      if(!key || isIgnoredUser(key)) return;
       const group = cleanValue(vals[COL_GROUP]) || 'Unmapped';
       const leader = cleanValue(vals[COL_LEADER]) || 'Unmapped';
       STR_MAP[key] = { group, leader };
@@ -78,14 +86,13 @@ function process(data){
 
   data.forEach(r=>{
     const user = cleanValue(r.added_by);
-    if(!user) return;
+    if(!user || isIgnoredUser(user)) return;
     const action = cleanValue(r.case_action);
     const status = cleanValue(r.ticket_status);
     const hourDate = new Date(r.added_on);
     if(isNaN(hourDate.getTime())) return;
     const hour = hourDate.getHours();
 
-    // Match the CSV agent to the Structure sheet case-insensitively.
     const mapped = STR_MAP[normalizeAgentId(user)];
     const leader = mapped ? mapped.leader : (cleanValue(r.added_by_leader) || cleanValue(r.leader) || "Unmapped");
     const group = mapped ? mapped.group : (cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped");
