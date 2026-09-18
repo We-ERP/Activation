@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -24,9 +25,16 @@
       <h1>Activation <span class="amp">&</span> Follow-up</h1>
       <div class="tagline">"OWN The Case" — hourly performance by group · leader · agent</div>
     </div>
-    <div id="syncPill" class="sync-pill">
-      <div class="dot"></div>
-      <span id="syncText">Not connected to the sheet yet</span>
+    <div class="topline-actions">
+      <label class="theme-switch" title="Toggle light/dark mode">
+        <input type="checkbox" id="themeToggle" aria-label="Toggle light and dark mode">
+        <span class="theme-switch-track"><span class="theme-switch-thumb"></span></span>
+        <span class="theme-switch-label"><span class="theme-dark-label">Dark</span><span class="theme-light-label">Light</span></span>
+      </label>
+      <div id="syncPill" class="sync-pill">
+        <div class="dot"></div>
+        <span id="syncText">Not connected to the sheet yet</span>
+      </div>
     </div>
   </div>
 
