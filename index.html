@@ -36,7 +36,6 @@
     <div class="toolbar-row">
       <div class="field"><label class="field-label" for="tabName">Str tab name</label><input type="text" id="tabName" value="Str"></div>
       <button class="primary" onclick="syncMapping()">🔄 Sync mapping</button>
-      <span class="field-hint">Reads column D (agent), F (task group), M (leader) from that tab.</span>
     </div>
     <div class="toolbar-row">
       <div class="field"><label class="field-label" for="fileInput">Upload ticket export (CSV)</label><input type="file" id="fileInput"></div>
@@ -44,7 +43,7 @@
       <div class="field"><label class="field-label" for="searchInput">Search agent</label><input type="text" id="searchInput" placeholder="agent id / name"></div>
     </div>
     <div class="toolbar-row">
-      <button class="primary" onclick="handlePaste()">▶ Process tickets</button>
+      <button class="primary" onclick="handlePaste()">▶ Run Performance</button>
       <button class="subtle" onclick="expandAll(true)">Expand all</button>
       <button class="subtle" onclick="expandAll(false)">Collapse all</button>
       <button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button>
@@ -55,5 +54,6 @@
 </div>
 <script src="app.js"></script>
 <script src="ignored-users.js"></script>
+<script src="table-totals.js"></script>
 </body>
 </html>
