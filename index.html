@@ -32,16 +32,31 @@
       <div id="syncPill" class="sync-pill"><div class="dot"></div><span id="syncText">Not connected to the sheet yet</span></div>
     </div>
   </div>
+
   <div class="toolbar">
     <div class="toolbar-row">
-      <div class="field"><label class="field-label" for="tabName">Str tab name</label><input type="text" id="tabName" value="Str"></div>
+      <div class="field">
+        <label class="field-label" for="tabName">Str tab name</label>
+        <input type="text" id="tabName" value="Str">
+      </div>
       <button class="primary" onclick="syncMapping()">🔄 Sync mapping</button>
     </div>
+
     <div class="toolbar-row">
-      <div class="field"><label class="field-label" for="fileInput">Upload ticket export (CSV)</label><input type="file" id="fileInput"></div>
-      <div class="field" style="flex:1;min-width:240px;"><label class="field-label" for="pasteArea">...or paste CSV</label><textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea></div>
-      <div class="field"><label class="field-label" for="searchInput">Search agent</label><input type="text" id="searchInput" placeholder="agent id / name"></div>
+      <div class="field">
+        <label class="field-label" for="fileInput">Upload ticket export (CSV)</label>
+        <input type="file" id="fileInput">
+      </div>
+      <div class="field" style="flex:1;min-width:240px;">
+        <label class="field-label" for="pasteArea">...or paste CSV</label>
+        <textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label" for="searchInput">Search agent</label>
+        <input type="text" id="searchInput" placeholder="agent id / name">
+      </div>
     </div>
+
     <div class="toolbar-row">
       <button class="primary" onclick="handlePaste()">▶ Run Performance</button>
       <button class="subtle" onclick="expandAll(true)">Expand all</button>
@@ -50,10 +65,10 @@
       <button class="ghost-danger" onclick="resetData()">Reset</button>
     </div>
   </div>
+
   <div id="dashboard"></div>
 </div>
+
 <script src="app.js"></script>
-<script src="ignored-users.js"></script>
-<script src="image-tools.js"></script>
 </body>
 </html>
