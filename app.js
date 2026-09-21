@@ -726,7 +726,7 @@ function renderDashboard() {
   if (!STATE.report || !STATE.report.dates.length || !STATE.report.groups.length) {
     dashboard.innerHTML = `<div class="empty-state">
       <div class="big">No performance report yet</div>
-      Upload one or more source files, optionally sync the Str tab, then click <strong>بحث ونشاء التقرير</strong>.
+      Upload one or more source files, optionally sync the Str tab, then click <strong>بحث وإنشاء التقرير</strong>.
     </div>`;
     return;
   }
