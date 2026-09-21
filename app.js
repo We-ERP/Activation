@@ -205,7 +205,7 @@ function parseDateValue(value) {
     }
   }
 
-  const isIsoLike = /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s].*)?$/.test(text);
+  const isIsoLike = /^\d{4}[\/-]\d{1,2}[\/-]\d{1,2}(?:[T\s].*)?$/.test(text);
   if (!isIsoLike) return null;
 
   const direct = new Date(text);
@@ -388,6 +388,15 @@ function assignProfileValue(profile, key, value, { overwrite = false } = {}) {
   if (overwrite || !cleanValue(profile[key])) profile[key] = cleaned;
 }
 
+function assignFallbackProfile(profile, leader, group) {
+  if (!cleanValue(profile.leader) || profile.leader === "Unmapped") {
+    assignProfileValue(profile, "leader", leader, { overwrite: true });
+  }
+  if (!cleanValue(profile.group) || profile.group === "Unmapped") {
+    assignProfileValue(profile, "group", group, { overwrite: true });
+  }
+}
+
 function buildReportModel() {
   const profileMap = new Map();
   const agentIdByLogin = new Map();
@@ -457,22 +466,25 @@ function buildReportModel() {
     const addedBy = normalizeAgentId(pickValue(row, HEADER_ALIASES.irAddedBy));
     const dateKey = touchDate(pickValue(row, HEADER_ALIASES.irAddedOn));
     if (!dateKey) return;
+    const leaderFallback = pickValue(row, HEADER_ALIASES.irLeaderFallback);
+    const groupFallback = pickValue(row, HEADER_ALIASES.irGroupFallback);
 
     if (addedBy && !isIgnoredUser(addedBy)) {
       const profile = ensureProfile(profileMap, addedBy);
-      assignProfileValue(profile, "leader", pickValue(row, HEADER_ALIASES.irLeaderFallback));
-      assignProfileValue(profile, "group", pickValue(row, HEADER_ALIASES.irGroupFallback));
+      assignFallbackProfile(profile, leaderFallback, groupFallback);
     }
 
     const assignedTo = normalizeAgentId(pickValue(row, HEADER_ALIASES.irAssignedTo));
     if (assignedTo && !isIgnoredUser(assignedTo)) {
-      ensureProfile(profileMap, assignedTo);
+      const profile = ensureProfile(profileMap, assignedTo);
+      assignFallbackProfile(profile, leaderFallback, groupFallback);
       mapIncrement(assigningByAgentDate, `${assignedTo}__${dateKey}`, 1);
     }
 
     const ticketOwner = normalizeAgentId(pickValue(row, HEADER_ALIASES.irTicketOwner));
     if (ticketOwner && !isIgnoredUser(ticketOwner)) {
-      ensureProfile(profileMap, ticketOwner);
+      const profile = ensureProfile(profileMap, ticketOwner);
+      assignFallbackProfile(profile, leaderFallback, groupFallback);
       mapIncrement(tktByAgentDate, `${ticketOwner}__${dateKey}`, 1);
     }
   });
