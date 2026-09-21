@@ -484,13 +484,16 @@ function buildReportModel() {
     const profile = ensureProfile(profileMap, agentId);
     assignProfileValue(profile, "loginId", rawLogin, { overwrite: true });
 
-    const computedTalkSeconds =
-      parseSecondsValue(pickValue(row, HEADER_ALIASES.holdTime))
-      + parseSecondsValue(pickValue(row, HEADER_ALIASES.otherTime))
-      + parseSecondsValue(pickValue(row, HEADER_ALIASES.auxOutOffTime))
-      + parseSecondsValue(pickValue(row, HEADER_ALIASES.acwOutOffTime));
+    const rawTalkInputs = [
+      pickValue(row, HEADER_ALIASES.holdTime),
+      pickValue(row, HEADER_ALIASES.otherTime),
+      pickValue(row, HEADER_ALIASES.auxOutOffTime),
+      pickValue(row, HEADER_ALIASES.acwOutOffTime)
+    ];
+    const hasRawTalkInputs = rawTalkInputs.some(value => cleanValue(value) !== "");
+    const computedTalkSeconds = rawTalkInputs.reduce((sum, value) => sum + parseSecondsValue(value), 0);
     const fallbackTalkSeconds = parseSecondsValue(pickValue(row, HEADER_ALIASES.utlTalk));
-    const talkSeconds = computedTalkSeconds || fallbackTalkSeconds;
+    const talkSeconds = hasRawTalkInputs ? computedTalkSeconds : fallbackTalkSeconds;
 
     mapIncrement(talkByLoginDate, `${loginKey}__${dateKey}`, talkSeconds / 86400);
   });

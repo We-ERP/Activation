@@ -70,11 +70,11 @@ Every day in that inclusive range becomes a report day in the UI, even if some m
 - `TKT = COUNTIFS(IR_L_E, agentId, Date, currentDate)`
 - `System = TKT * 0.00104166666666667`
 - `Talk Time = SUMIFS(UL_T, UL_lo, loginId, UL_Date, currentDate) / 3600 / 24`
-
-For UTL uploads, `UL_T` is derived per row from `Hold Time + Other Time + AUXOUTOFFTIME + ACWOUTOFFTIME` when those raw columns are present, matching the business rule from the legacy workbook.
 - `Tele-SCH = SUMIFS(ST_Du, ST_ID, agentId, ST_D, currentDate) * 0.9`
 - `Comp = SUMIFS(Comp_Du, Comp_ID, agentId, Comp_Da, currentDate)`
 - `Loss Time = IF(Status <> "Active", Status, MAX(0, Tele-SCH - (Comp + Talk Time + System)))`
+
+For UTL uploads, `UL_T` is derived per row from `Hold Time + Other Time + AUXOUTOFFTIME + ACWOUTOFFTIME` when those raw columns are present; otherwise the app falls back to a provided `UL_T` field.
 
 Duration outputs render as `H:MM:SS`.
 
