@@ -54,41 +54,45 @@
 }
 .theme-switch input:focus-visible + .theme-switch-track { outline: 2px solid var(--amber); outline-offset: 2px; }
 .theme-switch-label { font-size: 12px; font-weight: 600; min-width: 38px; text-align: center; }
-.theme-light-label { display: none; }
+.theme-dark-label { display: none; }
+.theme-light-label { display: inline; }
 
-/* Light mode is activated by the checkbox without changing application logic. */
+/* Dark mode is activated by the checkbox without changing application logic. */
 body:has(#themeToggle:checked) {
-  --bg: #f4f7fb;
-  --bg-grain: #e9eef6;
-  --panel: #ffffff;
-  --panel-2: #f1f5fa;
-  --panel-raised: #e7edf5;
-  --border: #c7d2e2;
-  --border-soft: #dce4ef;
-  --text: #172235;
-  --text-dim: #52627a;
-  --text-faint: #728198;
-  --amber: #b85b00;
-  --amber-ink: #ffffff;
-  --amber-dim: rgba(184,91,0,.13);
-  --teal: #087f78;
-  --violet: #6354c6;
-  --pink: #c33b7d;
-  --blue: #1769aa;
-  --green: #087f55;
-  --gold: #956f00;
-  --good: #087f55;
-  --bad: #bd2638;
-  --warn: #956f00;
-  --shadow-sm: 0 1px 3px rgba(30,50,80,.10);
-  --shadow-md: 0 8px 24px rgba(30,50,80,.14);
-  --shadow-glow: 0 0 0 1px rgba(184,91,0,.16), 0 8px 24px -8px rgba(184,91,0,.22);
+  --bg: #071122;
+  --bg-grain: #0a162b;
+  --panel: #101d35;
+  --panel-2: #16253f;
+  --panel-raised: #1a2c4a;
+  --border: #2b4165;
+  --border-soft: #203556;
+  --text: #ecf3ff;
+  --text-dim: #9eb0cf;
+  --text-faint: #6f85a9;
+  --amber: #2b64b1;
+  --amber-ink: #f4f8ff;
+  --amber-dim: rgba(43,100,177,.24);
+  --teal: #7aa8f0;
+  --violet: #9bb9ee;
+  --pink: #7f9fdb;
+  --blue: #7ea5e8;
+  --green: #67a4de;
+  --gold: #8aa9db;
+  --good: #67d3a4;
+  --bad: #ff8d9f;
+  --warn: #adc2e9;
+  --low-value-bg: #8f2437;
+  --low-value-text: #ffffff;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.35);
+  --shadow-md: 0 8px 24px rgba(3,10,24,.45);
+  --shadow-glow: 0 0 0 1px rgba(43,100,177,.22), 0 8px 24px -8px rgba(43,100,177,.35);
+  background: radial-gradient(1100px 480px at 12% -8%,#16213f 0,transparent 58%),radial-gradient(900px 460px at 102% 2%,#132038 0,transparent 55%),linear-gradient(180deg,var(--bg),var(--bg-grain));
 }
 
 body:has(#themeToggle:checked) .theme-switch-track { background: var(--amber); }
 body:has(#themeToggle:checked) .theme-switch-thumb { transform: translateX(14px); background: #fff; }
-body:has(#themeToggle:checked) .theme-dark-label { display: none; }
-body:has(#themeToggle:checked) .theme-light-label { display: inline; }
+body:has(#themeToggle:checked) .theme-dark-label { display: inline; }
+body:has(#themeToggle:checked) .theme-light-label { display: none; }
 body:has(#themeToggle:checked) .brand h1 .amp { color: var(--amber); }
 
 @media (max-width: 760px) {
