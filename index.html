@@ -25,7 +25,7 @@
         <label class="field-label" for="tabName">Str tab name</label>
         <input type="text" id="tabName" value="Str">
       </div>
-      <button class="primary" onclick="syncMapping()">🔄 Sync mapping</button>
+      <button class="primary" id="syncButton">🔄 Sync mapping</button>
     </div>
     <div class="toolbar-row source-grid">
       <div class="field upload-field">
@@ -69,13 +69,13 @@
       </div>
     </div>
     <div class="toolbar-row">
-      <button class="primary" onclick="generateReport()" lang="ar" dir="rtl" aria-label="Generate report">بحث وإنشاء التقرير</button>
-      <button class="subtle" onclick="handlePaste()">Import pasted CSV</button>
-      <button class="subtle" onclick="stepActiveDate(-1)" aria-label="Show previous report day">◀ Previous day</button>
-      <button class="subtle" onclick="stepActiveDate(1)" aria-label="Show next report day">Next day ▶</button>
-      <button class="subtle" onclick="toggleDateList()" lang="ar" dir="rtl" aria-label="Expand or collapse the report days list">عرض/طي أيام التقرير</button>
-      <button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button>
-      <button class="ghost-danger" onclick="resetData()">Reset</button>
+      <button class="primary" id="generateButton" lang="ar" dir="rtl" aria-label="Generate report">بحث وإنشاء التقرير</button>
+      <button class="subtle" id="pasteButton">Import pasted CSV</button>
+      <button class="subtle" id="prevDayButton" aria-label="Show previous report day">◀ Previous day</button>
+      <button class="subtle" id="nextDayButton" aria-label="Show next report day">Next day ▶</button>
+      <button class="subtle" id="toggleDaysButton" lang="ar" dir="rtl" aria-label="Expand or collapse the report days list">عرض/طي أيام التقرير</button>
+      <button class="ghost-good" id="copyButton">📸 Copy as image</button>
+      <button class="ghost-danger" id="resetButton">Reset</button>
     </div>
   </div>
   <div id="dashboard"></div>

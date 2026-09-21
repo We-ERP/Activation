@@ -141,6 +141,15 @@ function groupColor(name) {
   return GROUP_PALETTE[Math.abs(hash) % GROUP_PALETTE.length];
 }
 
+function pickSheetValue(record, index, aliases) {
+  if (Array.isArray(record)) return record[index];
+  if (record && typeof record === "object") {
+    if (record[index] !== undefined) return record[index];
+    if (record[String(index)] !== undefined) return record[String(index)];
+  }
+  return pickValue(record, aliases);
+}
+
 function excelSerialToDate(serial) {
   const utcDays = Math.floor(serial - 25569);
   const utcValue = utcDays * DAY_MS;
@@ -344,13 +353,12 @@ async function syncMapping() {
 
     STATE.mappingSheet = {};
     json.data.forEach(record => {
-      const values = Object.values(record);
-      const user = cleanValue(values[COL_USER]);
+      const user = cleanValue(pickSheetValue(record, COL_USER, ["User", "user", "Agent ID", "TTS User", "ST_ID", "Login_ID"]));
       const agentId = normalizeAgentId(user);
       if (!agentId || isIgnoredUser(agentId)) return;
       STATE.mappingSheet[agentId] = {
-        group: cleanValue(values[COL_GROUP]) || "Unmapped",
-        leader: cleanValue(values[COL_LEADER]) || "Unmapped"
+        group: cleanValue(pickSheetValue(record, COL_GROUP, ["Group", "Task Group", "group", "task_group"])) || "Unmapped",
+        leader: cleanValue(pickSheetValue(record, COL_LEADER, ["TL_Name", "TL Name", "Leader", "leader", "Team Leader"])) || "Unmapped"
       };
     });
 
@@ -497,13 +505,13 @@ function buildReportModel() {
 
     let agentId = agentIdByLogin.get(loginKey);
     if (!agentId) {
-      agentId = normalizeAgentId(rawLogin);
-      if (!agentId) return;
-      const profile = ensureProfile(profileMap, agentId);
-      assignProfileValue(profile, "loginId", rawLogin, { overwrite: true });
-      assignProfileValue(profile, "ttsUser", rawLogin);
-      assignProfileValue(profile, "agentName", rawLogin);
-      agentIdByLogin.set(loginKey, agentId);
+      const existingAgentId = normalizeAgentId(rawLogin);
+      if (existingAgentId && profileMap.has(existingAgentId)) {
+        agentId = existingAgentId;
+        agentIdByLogin.set(loginKey, agentId);
+      } else {
+        return;
+      }
     }
 
     const profile = ensureProfile(profileMap, agentId);
@@ -854,6 +862,14 @@ document.addEventListener("DOMContentLoaded", () => {
     setSourceStatus(kind, "No file loaded");
   });
 
+  document.getElementById("syncButton").addEventListener("click", syncMapping);
+  document.getElementById("generateButton").addEventListener("click", generateReport);
+  document.getElementById("pasteButton").addEventListener("click", handlePaste);
+  document.getElementById("prevDayButton").addEventListener("click", () => stepActiveDate(-1));
+  document.getElementById("nextDayButton").addEventListener("click", () => stepActiveDate(1));
+  document.getElementById("toggleDaysButton").addEventListener("click", toggleDateList);
+  document.getElementById("copyButton").addEventListener("click", copyAsImage);
+  document.getElementById("resetButton").addEventListener("click", resetData);
   document.getElementById("searchInput").addEventListener("input", renderDashboard);
   renderDashboard();
   syncMapping();
