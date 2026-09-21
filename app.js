@@ -161,45 +161,49 @@ function parseDateValue(value) {
     return excelSerialToDate(numeric);
   }
 
-  const direct = new Date(text);
-  if (!isNaN(direct.getTime())) {
-    return new Date(direct.getFullYear(), direct.getMonth(), direct.getDate(), 12);
-  }
-
   const match = text.match(/^(\d{1,4})[\/\-](\d{1,2})[\/\-](\d{1,4})(?:\s+(.*))?$/);
-  if (!match) return null;
 
-  let [, p1, p2, p3, tail = ""] = match;
-  let year;
-  let month;
-  let day;
+  if (match) {
+    let [, p1, p2, p3, tail = ""] = match;
+    let year;
+    let month;
+    let day;
 
-  if (p1.length === 4) {
-    year = Number(p1);
-    month = Number(p2);
-    day = Number(p3);
-  } else {
-    const a = Number(p1);
-    const b = Number(p2);
-    const c = Number(p3.length === 2 ? `20${p3}` : p3);
-    year = c;
-    if (a > 12) {
-      day = a;
-      month = b;
-    } else if (b > 12) {
-      month = a;
-      day = b;
+    if (p1.length === 4) {
+      year = Number(p1);
+      month = Number(p2);
+      day = Number(p3);
     } else {
-      month = a;
-      day = b;
+      const a = Number(p1);
+      const b = Number(p2);
+      const c = Number(p3.length === 2 ? `20${p3}` : p3);
+      year = c;
+      if (a > 12) {
+        day = a;
+        month = b;
+      } else if (b > 12) {
+        month = a;
+        day = b;
+      } else {
+        month = a;
+        day = b;
+      }
+    }
+
+    const parsed = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T12:00:00`);
+    if (!isNaN(parsed.getTime())) return parsed;
+
+    const retry = new Date(`${year}/${month}/${day} ${tail}`.trim());
+    if (!isNaN(retry.getTime())) {
+      return new Date(retry.getFullYear(), retry.getMonth(), retry.getDate(), 12);
     }
   }
 
-  const parsed = new Date(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T12:00:00`);
-  if (!isNaN(parsed.getTime())) return parsed;
+  const isIsoLike = /^\d{4}-\d{1,2}-\d{1,2}(?:[T\s].*)?$/.test(text);
+  if (!isIsoLike) return null;
 
-  const retry = new Date(`${year}/${month}/${day} ${tail}`.trim());
-  return isNaN(retry.getTime()) ? null : new Date(retry.getFullYear(), retry.getMonth(), retry.getDate(), 12);
+  const direct = new Date(text);
+  return isNaN(direct.getTime()) ? null : new Date(direct.getFullYear(), direct.getMonth(), direct.getDate(), 12);
 }
 
 function toDateKey(value) {
@@ -291,12 +295,15 @@ function parseDelimitedText(text) {
   });
 }
 
-async function parseFileRows(file) {
+async function parseFileRows(file, kind) {
   const lower = file.name.toLowerCase();
   if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-    const sheetName = workbook.SheetNames[0];
+    const preferredSheet = kind === "str"
+      ? workbook.SheetNames.find(name => cleanValue(name).toLowerCase() === (document.getElementById("tabName").value.trim() || "Str").toLowerCase())
+      : null;
+    const sheetName = preferredSheet || workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
   }
@@ -314,7 +321,7 @@ async function handleFileSelection(kind, file) {
   if (!file) return;
   setSourceStatus(kind, `Loading ${file.name}...`, "busy");
   try {
-    const rows = await parseFileRows(file);
+    const rows = await parseFileRows(file, kind);
     await loadRowsIntoSource(kind, rows, file.name);
   } catch (error) {
     setSourceStatus(kind, `Couldn't parse ${file.name}: ${error.message}`, "err");
@@ -811,13 +818,16 @@ function setSort(key) {
   renderDashboard();
 }
 
-function copyAsImage() {
-  html2canvas(document.querySelector(".shell"), { backgroundColor: "#0a0e1a" }).then(canvas => {
-    canvas.toBlob(blob => {
-      navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-      alert("Copied ✅");
-    });
-  });
+async function copyAsImage() {
+  try {
+    const canvas = await html2canvas(document.querySelector(".shell"), { backgroundColor: "#0a0e1a" });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve));
+    if (!blob) throw new Error("Couldn't convert the report to an image");
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    alert("Copied ✅");
+  } catch (error) {
+    alert(`Copy failed: ${error.message}`);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
