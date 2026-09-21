@@ -156,6 +156,12 @@ function parseDateValue(value) {
   const text = cleanValue(value);
   if (!text) return null;
 
+  const isoDateOnly = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoDateOnly) {
+    const [, year, month, day] = isoDateOnly;
+    return new Date(Number(year), Number(month) - 1, Number(day), 12);
+  }
+
   const numeric = Number(text);
   if (Number.isFinite(numeric) && numeric > 20000 && numeric < 80000) {
     return excelSerialToDate(numeric);
@@ -305,7 +311,7 @@ async function parseFileRows(file, kind) {
       : null;
     const sheetName = preferredSheet || workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+    return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true });
   }
 
   const text = await file.text();
@@ -353,7 +359,7 @@ async function syncMapping() {
 
     if (STATE.report) generateReport();
   } catch (error) {
-    setStatus("err", `Couldn't reach the sheet (${error.message}) — report will rely on uploaded STR Loss or fallback grouping`);
+    setStatus("err", `Couldn't reach the "${tab}" sheet (${error.message}) — report will rely on uploaded STR Loss or fallback grouping`);
   }
 }
 
