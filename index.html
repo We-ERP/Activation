@@ -3,25 +3,80 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Activation & Follow-up — Ops Console</title>
+<title>Activation & Follow-up — Performance Ops Console</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="theme.css">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="shell">
   <div class="topline">
-    <div class="brand"><h1>Activation <span class="amp">&</span> Follow-up</h1><div class="tagline">"OWN The Case" — hourly performance by group · leader · agent</div></div>
+    <div class="brand"><h1>Activation <span class="amp">&</span> Follow-up</h1><div class="tagline">"OWN The Case" — daily performance by group · leader · agent</div></div>
     <div class="topline-actions"><label class="theme-switch" title="Toggle light/dark mode"><input type="checkbox" id="themeToggle" aria-label="Toggle light and dark mode"><span class="theme-switch-track"><span class="theme-switch-thumb"></span></span><span class="theme-switch-label"><span class="theme-dark-label">Dark</span><span class="theme-light-label">Light</span></span></label><div id="syncPill" class="sync-pill"><div class="dot"></div><span id="syncText">Not connected to the sheet yet</span></div></div>
   </div>
   <div class="toolbar">
-    <div class="toolbar-row"><div class="field"><label class="field-label" for="tabName">Str tab name</label><input type="text" id="tabName" value="Str"></div><button class="primary" onclick="syncMapping()">🔄 Sync mapping</button></div>
-    <div class="toolbar-row"><div class="field"><label class="field-label" for="fileInput">Upload ticket export (CSV)</label><input type="file" id="fileInput"></div><div class="field" style="flex:1;min-width:240px;"><label class="field-label" for="pasteArea">...or paste CSV</label><textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea></div><div class="field"><label class="field-label" for="searchInput">Search agent</label><input type="text" id="searchInput" placeholder="agent id / name"></div></div>
-    <div class="toolbar-row"><button class="primary" onclick="handlePaste()">▶ Run Performance</button><button class="subtle" onclick="expandAll(true)">Expand all</button><button class="subtle" onclick="expandAll(false)">Collapse all</button><button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button><button class="ghost-danger" onclick="resetData()">Reset</button></div>
+    <div class="toolbar-row">
+      <div class="field">
+        <label class="field-label" for="tabName">Str tab name</label>
+        <input type="text" id="tabName" value="Str">
+      </div>
+      <button class="primary" onclick="syncMapping()">🔄 Sync mapping</button>
+    </div>
+    <div class="toolbar-row source-grid">
+      <div class="field upload-field">
+        <label class="field-label" for="compInput">سجل التعويضات (Compensation Log)</label>
+        <input type="file" id="compInput" accept=".csv,.xlsx,.xls">
+        <div id="compStatus" class="upload-status">No file loaded</div>
+      </div>
+      <div class="field upload-field">
+        <label class="field-label" for="irInput">ملف تذاكر IR (IR Tickets File)</label>
+        <input type="file" id="irInput" accept=".csv,.xlsx,.xls">
+        <div id="irStatus" class="upload-status">No file loaded</div>
+      </div>
+      <div class="field upload-field">
+        <label class="field-label" for="utlInput">سجلات UTL (UTL Logs)</label>
+        <input type="file" id="utlInput" accept=".csv,.xlsx,.xls">
+        <div id="utlStatus" class="upload-status">No file loaded</div>
+      </div>
+      <div class="field upload-field">
+        <label class="field-label" for="strInput">شيت الهيكل (Structure Master Sheet)</label>
+        <input type="file" id="strInput" accept=".csv,.xlsx,.xls">
+        <div id="strStatus" class="upload-status">No file loaded</div>
+      </div>
+    </div>
+    <div class="toolbar-row">
+      <div class="field">
+        <label class="field-label" for="pasteSource">...or paste CSV rows for a source</label>
+        <select id="pasteSource">
+          <option value="ir">IR Tickets File</option>
+          <option value="comp">Compensation Log</option>
+          <option value="utl">UTL Logs</option>
+          <option value="str">Structure Master Sheet</option>
+        </select>
+      </div>
+      <div class="field" style="flex:1;min-width:240px;">
+        <label class="field-label" for="pasteArea">CSV paste area</label>
+        <textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label" for="searchInput">Search rows</label>
+        <input type="text" id="searchInput" placeholder="TL / agent / login / teleopti">
+      </div>
+    </div>
+    <div class="toolbar-row">
+      <button class="primary" onclick="generateReport()">بحث ونشاء التقرير</button>
+      <button class="subtle" onclick="handlePaste()">Import pasted CSV</button>
+      <button class="subtle" onclick="stepActiveDate(-1)">◀ Previous day</button>
+      <button class="subtle" onclick="stepActiveDate(1)">Next day ▶</button>
+      <button class="subtle" onclick="toggleDateList()">عرض/طي أيام التقرير</button>
+      <button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button>
+      <button class="ghost-danger" onclick="resetData()">Reset</button>
+    </div>
   </div>
   <div id="dashboard"></div>
 </div>

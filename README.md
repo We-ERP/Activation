@@ -1,41 +1,81 @@
-# Activation & Follow-up — Ops Console
+# Activation & Follow-up — Performance Ops Console
 
-Hourly performance dashboard: **Hour → Task Group → Leader → Agent**.
+Static client-side ops console for building the daily performance report from four uploaded sources plus the optional Google Sheet `Str` mapping sync.
 
-## Structure
-```
-index.html      shell only (loads CSS/JS, holds the toolbar + #dashboard mount point)
-css/style.css   all visual design (tokens live at the top as CSS variables)
-js/app.js       all logic (Sheet sync, CSV processing, rendering)
-```
+## Files
 
-## How it works
-1. On load, `app.js` calls your Google Apps Script Web App at the `tab=Str` endpoint
-   and reads:
-   - column **D** → agent id
-   - column **F** → task group
-   - column **M** → leader name
-2. You paste or upload the ticket CSV export (must contain at least
-   `added_by`, `added_on`, `case_action`, `ticket_status`).
-3. Each ticket's agent is looked up in the Str mapping to place it under the
-   right group/leader. If an agent isn't in the mapping (or the sheet can't be
-   reached), it falls back to the CSV's own `added_by_leader` column under an
-   "Unmapped" group so nothing silently disappears.
-
-## Configuring
-Everything you're likely to change lives at the top of `js/app.js`:
-
-```js
-const SHEET_URL   = "...";   // your Apps Script /exec URL
-const COL_USER    = 3;       // column D
-const COL_GROUP   = 5;       // column F
-const COL_LEADER  = 12;      // column M
-const COOR        = [...];   // coordinator agent IDs
+```text
+index.html                    App shell and toolbar
+app.js                        Parsing, formula translation, report generation, rendering
+style.css                     Main dark ops-console styling
+theme.css                     Light/dark toggle styling
+sample-data/STR-Loss-template.csv
 ```
 
-Colors, fonts, spacing all live as CSS variables at the top of `css/style.css`
-under `:root`.
+## Required inputs
 
-## Deploying on GitHub Pages
-Push these three files/folders as-is, enable Pages on the repo, and it will
-work with no build step — it's plain HTML/CSS/JS.
+Upload each source as CSV or XLSX:
+
+1. **Compensation Log**
+   - `Comp_ID`
+   - `Comp_Da`
+   - `Comp_Du`
+2. **IR Tickets File**
+   - `added_by`
+   - `added_on`
+   - `assigned_to`
+   - `IR_L_E`
+3. **UTL Logs**
+   - `UL_lo`
+   - `UL_Date`
+   - `Hold Time`
+   - `Other Time`
+   - `AUXOUTOFFTIME`
+   - `ACWOUTOFFTIME`
+   - Optional fallback: `UL_T`
+4. **Structure Master Sheet / STR Loss**
+   - `ST_ID`
+   - `ST_Du`
+   - `ST_D`
+   - `TL_Name`
+   - `TTS_User`
+   - `Agent_Name`
+   - `Login_ID`
+   - `Teleopti_ID`
+   - `Status`
+   - `Group`
+
+Use `/home/runner/work/Activation/Activation/sample-data/STR-Loss-template.csv` as the template for the new STR Loss upload. It contains the exact headers expected by the app.
+
+## Date handling
+
+The report scans **all uploaded sources** and derives the report range from the **earliest date to the latest date found** across:
+
+- Compensation Log
+- IR Tickets File
+- UTL Logs
+- Structure Master Sheet / STR Loss
+
+Every day in that inclusive range becomes a report day in the UI, even if some middle dates have no rows in one or more files.
+
+## Mapping behavior
+
+- **STR Loss upload wins** for row metadata like TL name, TTS user, Agent name, Login ID, Teleopti ID, Status, and Group.
+- The Google Sheet `Str` sync is still supported and fills Group / Leader mapping when STR Loss data is missing.
+- If neither source maps an agent, the app keeps the row under `Unmapped`.
+
+## Excel formulas translated in `app.js`
+
+- `Assigning Tkts = COUNTIFS(assigned_to, agentId, Date, currentDate)`
+- `TKT = COUNTIFS(IR_L_E, agentId, Date, currentDate)`
+- `System = TKT * 0.00104166666666667`
+- `Talk Time = SUMIFS(UL_T, UL_lo, loginId, UL_Date, currentDate) / 3600 / 24`
+- `Tele-SCH = SUMIFS(ST_Du, ST_ID, agentId, ST_D, currentDate) * 0.9`
+- `Comp = SUMIFS(Comp_Du, Comp_ID, agentId, Comp_Da, currentDate)`
+- `Loss Time = IF(Status <> "Active", Status, MAX(0, Tele-SCH - (Comp + Talk Time + System)))`
+
+Duration outputs render as `H:MM:SS`.
+
+## Running
+
+There is no build step or package install. Open `index.html` locally or publish the repository through GitHub Pages.
