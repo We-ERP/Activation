@@ -111,15 +111,17 @@ function process(data){
     const leader = mapped ? mapped.leader : (cleanValue(r.added_by_leader) || cleanValue(r.leader) || "Unmapped");
     const group  = mapped ? mapped.group : (cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped");
 
+    const agentKey = normalizeAgentId(user);
+
     if(!GLOBAL_DATA[group]) GLOBAL_DATA[group] = {};
     if(!GLOBAL_DATA[group][leader]) GLOBAL_DATA[group][leader] = {};
-    if(!GLOBAL_DATA[group][leader][user]){
-      GLOBAL_DATA[group][leader][user] = {
-        hours:{}, total:0, reached:0, notReached:0, points:0
+    if(!GLOBAL_DATA[group][leader][agentKey]){
+      GLOBAL_DATA[group][leader][agentKey] = {
+        display: user, hours:{}, total:0, reached:0, notReached:0, points:0
       };
     }
 
-    const u = GLOBAL_DATA[group][leader][user];
+    const u = GLOBAL_DATA[group][leader][agentKey];
     hoursSet.add(hour);
     u.hours[hour] = (u.hours[hour]||0) + 1;
     u.total++;
@@ -240,7 +242,7 @@ function renderFiltered(){
     const agg = aggregate(flat);
     const color = groupColor(g);
 
-    const hasMatch = !search || Object.keys(flat).some(a => a.toLowerCase().includes(search));
+    const hasMatch = !search || Object.keys(flat).some(a => (flat[a].display || a).toLowerCase().includes(search));
     if(!hasMatch) return;
 
     const groupEl = document.createElement('details');
@@ -272,7 +274,7 @@ function renderFiltered(){
 
     leaderNames.forEach(l=>{
       const agents = leaders[l];
-      const agentIds = Object.keys(agents).filter(a => !search || a.toLowerCase().includes(search));
+      const agentIds = Object.keys(agents).filter(a => !search || (agents[a].display || a).toLowerCase().includes(search));
       if(search && agentIds.length === 0) return;
 
       const lAgg = aggregate(agents);
@@ -310,7 +312,8 @@ function renderFiltered(){
         const userReach = reachPct(u.reached, u.notReached);
         const reachClass = (u.reached + u.notReached === 0) ? '' : (userReach >= 60 ? 'reach-good' : 'reach-bad');
 
-        let row = `<tr><td>${a}${COOR.includes(normalizeAgentId(a)) ? ' <span class="badge">COOR</span>' : ''}</td>`;
+        const displayName = u.display || a;
+        let row = `<tr><td>${displayName}${COOR.includes(normalizeAgentId(a)) ? ' <span class="badge">COOR</span>' : ''}</td>`;
 
         GLOBAL_HOURS.forEach(h=>{
           const v = u.hours[h] || 0;
