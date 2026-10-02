@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="theme.css">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -21,7 +22,7 @@
   <div class="toolbar">
     <div class="toolbar-row"><div class="field"><label class="field-label" for="tabName">Str tab name</label><input type="text" id="tabName" value="Str"></div><button class="primary" onclick="syncMapping()">🔄 Sync mapping</button></div>
     <div class="toolbar-row"><div class="field"><label class="field-label" for="fileInput">Upload ticket export (CSV)</label><input type="file" id="fileInput"></div><div class="field" style="flex:1;min-width:240px;"><label class="field-label" for="pasteArea">...or paste CSV</label><textarea id="pasteArea" placeholder="Paste CSV rows here..."></textarea></div><div class="field"><label class="field-label" for="searchInput">Search agent</label><input type="text" id="searchInput" placeholder="agent id / name"></div></div>
-    <div class="toolbar-row"><button class="primary" onclick="handlePaste()">▶ Run Performance</button><button class="subtle" onclick="expandAll(true)">Expand all</button><button class="subtle" onclick="expandAll(false)">Collapse all</button><button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button><button class="ghost-danger" onclick="resetData()">Reset</button></div>
+    <div class="toolbar-row"><button class="primary" onclick="handlePaste()">▶ Run Performance</button><button class="subtle" onclick="expandAll(true)">Expand all</button><button class="subtle" onclick="expandAll(false)">Collapse all</button><button class="ghost-good" onclick="copyAsImage()">📸 Copy as image</button><button class="ghost-good" onclick="exportToExcel()">📊 Export Excel</button><button class="ghost-danger" onclick="resetData()">Reset</button></div>
   </div>
   <div id="dashboard"></div>
 </div>
