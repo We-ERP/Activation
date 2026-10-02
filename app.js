@@ -259,6 +259,18 @@ function renderFiltered(){
         </span>
       </summary>`;
 
+    const groupCopyBtn = document.createElement('button');
+    groupCopyBtn.type = 'button';
+    groupCopyBtn.className = 'subtle';
+    groupCopyBtn.textContent = '📋 Copy';
+    groupCopyBtn.title = `Copy "${g}" metrics to clipboard`;
+    groupCopyBtn.addEventListener('click', ev => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      copyGroupData(g, null, groupCopyBtn);
+    });
+    groupEl.querySelector('summary').appendChild(groupCopyBtn);
+
     const body = document.createElement('div');
     body.className = 'group-body';
 
@@ -293,6 +305,18 @@ function renderFiltered(){
             <span>${Object.keys(agents).length} agents</span>
           </span>
         </summary>`;
+
+      const leaderCopyBtn = document.createElement('button');
+      leaderCopyBtn.type = 'button';
+      leaderCopyBtn.className = 'subtle';
+      leaderCopyBtn.textContent = '📋 Copy';
+      leaderCopyBtn.title = `Copy "${l}" metrics to clipboard`;
+      leaderCopyBtn.addEventListener('click', ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        copyGroupData(g, l, leaderCopyBtn);
+      });
+      leaderEl.querySelector('summary').appendChild(leaderCopyBtn);
 
       const wrap = document.createElement('div');
       wrap.className = 'agents-wrap';
@@ -347,6 +371,226 @@ function copyAsImage(){
       alert("Copied ✅");
     });
   });
+}
+
+/* ---------- Per-group / per-TL clipboard copy (UI-only; no data logic) ---------- */
+function copyGroupData(groupName, leaderName, btn){
+  const group = GLOBAL_DATA[groupName];
+  if(!group) return;
+
+  const search = document.getElementById("searchInput").value.toLowerCase();
+  const header = ['Agent', ...GLOBAL_HOURS.map(h => `${h}:00`), 'Total', 'Points', 'Reach %'];
+  const lines = [];
+
+  const appendLeader = l => {
+    const agents = group[l];
+    if(!agents) return;
+    const agentIds = Object.keys(agents).filter(a => !search || (agents[a].display || a).toLowerCase().includes(search));
+    if(agentIds.length === 0) return;
+    const lAgg = aggregate(agents);
+    if(lines.length) lines.push('');
+    lines.push(`${groupName} — ${l}`);
+    lines.push(`${lAgg.total} tickets · ${reachPct(lAgg.reached, lAgg.notReached)}% reach · ${lAgg.points.toFixed(1)} pts · ${Object.keys(agents).length} agents`);
+    lines.push(header.join('\t'));
+    agentIds.sort((a,b) => agents[b].total - agents[a].total).forEach(a => {
+      const u = agents[a];
+      const row = [u.display || a];
+      GLOBAL_HOURS.forEach(h => row.push(u.hours[h] || ''));
+      row.push(u.total, u.points.toFixed(1), `${reachPct(u.reached, u.notReached)}%`);
+      lines.push(row.join('\t'));
+    });
+  };
+
+  if(leaderName) appendLeader(leaderName);
+  else Object.keys(group).sort((a,b) => aggregate(group[b]).total - aggregate(group[a]).total).forEach(appendLeader);
+
+  const text = lines.join('\n');
+  const done = ok => flashCopied(btn, ok);
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(() => done(true)).catch(() => fallbackCopyText(text, done));
+  }else{
+    fallbackCopyText(text, done);
+  }
+}
+
+function fallbackCopyText(text, done){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    done(ok);
+  }catch(e){
+    done(false);
+  }
+}
+
+function flashCopied(btn, ok){
+  if(!btn) return;
+  const original = btn.textContent;
+  btn.textContent = ok ? 'Copied ✓' : 'Copy failed';
+  setTimeout(() => { btn.textContent = original; }, 1400);
+}
+
+/* ---------- Excel export (.xlsx) with theme colors; reads in-memory data only ---------- */
+function exportToExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert("Excel export library is still loading — please try again in a moment.");
+    return;
+  }
+  if(Object.keys(GLOBAL_DATA).length === 0){
+    alert("No data to export — run performance first.");
+    return;
+  }
+
+  const NAVY = "123B74", WHITE = "FFFFFF", DIM = "4F6383", INK = "172235";
+  const GOOD = "0B6A4A", BAD = "B42336", LOW_BG = "8C1D2F", LEADER_BG = "E7EDF5";
+  const thin = { style:"thin", color:{ rgb:"C7D2E2" } };
+  const border = { top:thin, bottom:thin, left:thin, right:thin };
+  const base = { border, alignment:{ horizontal:"center", vertical:"center" } };
+  const headerStyle = { ...base, font:{ bold:true, color:{ rgb:WHITE } }, fill:{ fgColor:{ rgb:NAVY } } };
+  const leaderStyle = { ...base, font:{ bold:true, color:{ rgb:INK } }, fill:{ fgColor:{ rgb:LEADER_BG } }, alignment:{ horizontal:"left", vertical:"center" } };
+  const nameStyle = { ...base, alignment:{ horizontal:"left", vertical:"center" }, font:{ bold:true } };
+
+  let total=0, reached=0, nr=0, agentCount=0, maxCell=1;
+  for(const g in GLOBAL_DATA){
+    for(const l in GLOBAL_DATA[g]){
+      for(const a in GLOBAL_DATA[g][l]){
+        const d = GLOBAL_DATA[g][l][a];
+        total += d.total; reached += d.reached; nr += d.notReached; agentCount++;
+        GLOBAL_HOURS.forEach(h => { if((d.hours[h]||0) > maxCell) maxCell = d.hours[h]; });
+      }
+    }
+  }
+
+  /* Heat color: same rgba(18,59,116,alpha) the UI uses, flattened over white */
+  const heatFill = v => {
+    const alpha = 0.14 + 0.62 * (v / maxCell);
+    const mix = c => Math.round(255*(1-alpha) + c*alpha);
+    const hex = n => n.toString(16).padStart(2,"0").toUpperCase();
+    return hex(mix(18)) + hex(mix(59)) + hex(mix(116));
+  };
+  const hourStyle = v => {
+    if(!v) return base;
+    if(v < 15) return { ...base, fill:{ fgColor:{ rgb:LOW_BG } }, font:{ bold:true, color:{ rgb:WHITE } } };
+    const alpha = 0.14 + 0.62 * (v / maxCell);
+    return { ...base, fill:{ fgColor:{ rgb:heatFill(v) } }, font: alpha > 0.5 ? { bold:true, color:{ rgb:WHITE } } : { color:{ rgb:DIM } } };
+  };
+  const reachStyle = (r, n) => {
+    if(r + n === 0) return base;
+    const pct = +(r/(r+n)*100).toFixed(1);
+    return { ...base, font:{ bold:true, color:{ rgb: pct >= 60 ? GOOD : BAD } } };
+  };
+  const styleCell = (ws, r, c, style) => {
+    const addr = XLSX.utils.encode_cell({ r, c });
+    if(!ws[addr]) ws[addr] = { t:"s", v:"" };
+    ws[addr].s = style;
+  };
+  const safeSheetName = (name, taken) => {
+    const baseName = (String(name).replace(/[\\\/\?\*\[\]\:]/g, " ").trim() || "Group").slice(0, 28);
+    let candidate = baseName, i = 1;
+    while(taken.has(candidate)) candidate = `${baseName.slice(0,25)}_${i++}`;
+    taken.add(candidate);
+    return candidate;
+  };
+
+  const wb = XLSX.utils.book_new();
+  const groupNames = Object.keys(GLOBAL_DATA).sort((a,b)=>{
+    return aggregate(flattenGroup(GLOBAL_DATA[b])).total - aggregate(flattenGroup(GLOBAL_DATA[a])).total;
+  });
+
+  /* ----- Sheet 1: Summary (readout + group summary table) ----- */
+  const summaryRows = [
+    ["Activation & Follow-up — Performance Export"],
+    [`Generated: ${new Date().toLocaleString()}`],
+    [],
+    ["Total tickets", "Reachability", "Productivity / hour", "Avg tickets / agent"],
+    [total, `${reachPct(reached, nr)}%`, +(total/(GLOBAL_HOURS.length||1)).toFixed(1), +(total/agentCount || 0).toFixed(1)],
+    [],
+    ["Task group", "Total", "Reach", "Leaders", "Agents", "Points"]
+  ];
+  groupNames.forEach(g=>{
+    const flat = flattenGroup(GLOBAL_DATA[g]);
+    const agg = aggregate(flat);
+    summaryRows.push([g, agg.total, `${reachPct(agg.reached, agg.notReached)}%`, Object.keys(GLOBAL_DATA[g]).length, Object.keys(flat).length, +agg.points.toFixed(1)]);
+  });
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+  summarySheet["!cols"] = [{wch:28},{wch:14},{wch:20},{wch:20},{wch:10},{wch:10}];
+  styleCell(summarySheet, 0, 0, { font:{ bold:true, sz:14, color:{ rgb:NAVY } } });
+  styleCell(summarySheet, 1, 0, { font:{ color:{ rgb:DIM } } });
+  for(let c=0;c<4;c++) styleCell(summarySheet, 3, c, headerStyle);
+  for(let c=0;c<4;c++) styleCell(summarySheet, 4, c, { ...base, font:{ bold:true, sz:12, color:{ rgb:NAVY } } });
+  for(let c=0;c<6;c++) styleCell(summarySheet, 6, c, headerStyle);
+  groupNames.forEach((g, i)=>{
+    const r = 7 + i;
+    styleCell(summarySheet, r, 0, { ...nameStyle, fill:{ fgColor:{ rgb:groupColor(g).replace('#','').toUpperCase() } } });
+    for(let c=1;c<6;c++) styleCell(summarySheet, r, c, base);
+  });
+  XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
+
+  /* ----- One sheet per task group: TL sections + agent x hour grid ----- */
+  const taken = new Set(["Summary"]);
+  groupNames.forEach(g=>{
+    const leaders = GLOBAL_DATA[g];
+    const color = groupColor(g).replace('#','').toUpperCase();
+
+    const leaderNames = Object.keys(leaders).sort((a,b)=>aggregate(leaders[b]).total - aggregate(leaders[a]).total);
+    let topLeader = null, topPts = -1;
+    leaderNames.forEach(l=>{ const p = aggregate(leaders[l]).points; if(p > topPts){ topPts = p; topLeader = l; } });
+
+    const rows = [[`Group: ${g}`], []];
+    leaderNames.forEach(l=>{
+      const agents = leaders[l];
+      const lAgg = aggregate(agents);
+      rows.push([`${l === topLeader ? "👑 " : ""}${l}`, `${lAgg.total} tickets`, `${reachPct(lAgg.reached, lAgg.notReached)}% reach`, `${lAgg.points.toFixed(1)} pts`, `${Object.keys(agents).length} agents`]);
+      rows.push(["Agent", ...GLOBAL_HOURS.map(h=>`${h}:00`), "Total", "Points", "Reach %"]);
+      Object.keys(agents).sort((a,b)=>agents[b].total - agents[a].total).forEach(a=>{
+        const u = agents[a];
+        rows.push([u.display || a, ...GLOBAL_HOURS.map(h=>u.hours[h] || null), u.total, +u.points.toFixed(1), `${reachPct(u.reached, u.notReached)}%`]);
+      });
+      rows.push([]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{wch:26}, ...GLOBAL_HOURS.map(()=>({wch:7})), {wch:9}, {wch:9}, {wch:10}];
+
+    let r = 0;
+    styleCell(ws, r, 0, { font:{ bold:true, sz:13, color:{ rgb:INK } }, fill:{ fgColor:{ rgb:color } }, alignment:{ horizontal:"left", vertical:"center" } });
+    r += 2;
+    leaderNames.forEach(l=>{
+      for(let c=0;c<5;c++) styleCell(ws, r, c, leaderStyle);
+      r++;
+      const colCount = 1 + GLOBAL_HOURS.length + 3;
+      for(let c=0;c<colCount;c++) styleCell(ws, r, c, headerStyle);
+      r++;
+      const agents = leaders[l];
+      Object.keys(agents).sort((a,b)=>agents[b].total - agents[a].total).forEach(a=>{
+        const u = agents[a];
+        styleCell(ws, r, 0, nameStyle);
+        GLOBAL_HOURS.forEach((h, i)=> styleCell(ws, r, 1+i, hourStyle(u.hours[h] || 0)));
+        const totalCol = 1 + GLOBAL_HOURS.length;
+        styleCell(ws, r, totalCol, { ...base, font:{ bold:true, color:{ rgb:INK } } });
+        styleCell(ws, r, totalCol+1, { ...base, font:{ bold:true, color:{ rgb:NAVY } } });
+        styleCell(ws, r, totalCol+2, reachStyle(u.reached, u.notReached));
+        r++;
+      });
+      r++;
+    });
+
+    XLSX.utils.book_append_sheet(wb, ws, safeSheetName(g, taken));
+  });
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;
+  XLSX.writeFile(wb, `activation-performance-${stamp}.xlsx`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
