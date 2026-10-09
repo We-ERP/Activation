@@ -1,4 +1,4 @@
-# Activation & Follow-up — Performance Ops Console
+ # Activation & Follow-up — Performance Ops Console
 
 Static client-side ops console for building the daily performance report from four uploaded sources plus the optional Google Sheet `Str` mapping sync.
 
