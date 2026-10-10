@@ -8,6 +8,7 @@ const STR_FILE = "STR Loss.xlsx";      // lives in the same repo folder as index
 const STR_TAB = "Str";                 // falls back to the first sheet if not found
 const STR_COL_USER = "TTS User";       // must match the header text exactly
 const STR_COL_LEADER = "TL Name";
+const OTC_GROUP = "OTC Team";      // group name for every agent found in the STR sheet
 const COOR = ["AZ217162","AA138951","AS93748","KE144207","FA236380","MO222804","SM195261"];
 const GROUP_PALETTE = ["#ff9d3d","#2dd6c4","#9b8cfb","#f472b6","#60a5fa","#34d399","#f0b429"];
 
@@ -128,7 +129,7 @@ function process(data){
 
     const mapped = STR_MAP[normalizeAgentId(user)];
     const leader = mapped ? mapped.leader : (cleanValue(r.added_by_leader) || cleanValue(r.leader) || "Unmapped");
-    const group  = cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped";
+    const group  = mapped ? OTC_GROUP : (cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped");
 
     const agentKey = normalizeAgentId(user);
 
@@ -613,6 +614,11 @@ function exportToExcel(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // the sheet-tab controls are no longer needed: the mapping loads from the repo file automatically
+  const tabInput = document.getElementById("tabName");
+  if(tabInput) tabInput.parentElement.style.display = "none";
+  document.querySelectorAll('button[onclick*="syncMapping"]').forEach(b => b.style.display = "none");
+
   document.getElementById("fileInput").addEventListener("change", e=>{
     Papa.parse(e.target.files[0],{
       header:true,
