@@ -53,29 +53,38 @@ async function loadMapping(){
     if(!res.ok) throw new Error(`file not found (HTTP ${res.status})`);
 
     const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
-    const sheetName = wb.SheetNames.includes(STR_TAB) ? STR_TAB : wb.SheetNames[0];
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
-    if(!rows.length) throw new Error(`sheet "${sheetName}" is empty`);
 
-    // find the two columns by header name (trimmed, so stray spaces don't break it)
-    const headerOf = {};
-    Object.keys(rows[0]).forEach(k => { headerOf[cleanValue(k)] = k; });
-    const userCol = headerOf[STR_COL_USER];
-    const leaderCol = headerOf[STR_COL_LEADER];
-    if(!userCol || !leaderCol){
-      throw new Error(`missing column "${!userCol ? STR_COL_USER : STR_COL_LEADER}"`);
+    // look in the "Str" tab first, then every other tab; header row can be anywhere in the first 20 rows
+    const order = [STR_TAB, ...wb.SheetNames.filter(n => n !== STR_TAB)].filter(n => wb.Sheets[n]);
+    let found = null;
+    for(const name of order){
+      const grid = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', blankrows: false });
+      for(let i = 0; i < Math.min(grid.length, 20); i++){
+        const cells = grid[i].map(cleanValue);
+        const u = cells.indexOf(STR_COL_USER);
+        const l = cells.indexOf(STR_COL_LEADER);
+        if(u > -1 && l > -1){ found = { name, grid, hdr: i, u, l }; break; }
+      }
+      if(found) break;
+    }
+
+    if(!found){
+      const firstRow = (wb.Sheets[order[0]] && XLSX.utils.sheet_to_json(wb.Sheets[order[0]], { header: 1, defval: '' })[0] || [])
+        .map(cleanValue).filter(Boolean).slice(0, 10).join(' | ');
+      throw new Error(`no "${STR_COL_USER}" + "${STR_COL_LEADER}" headers found. Columns seen in "${order[0]}": ${firstRow || 'none'}`);
     }
 
     const map = {};
-    rows.forEach(r => {
-      const key = normalizeAgentId(r[userCol]);
-      if(!key || isIgnoredUser(key)) return;
-      map[key] = { leader: cleanValue(r[leaderCol]) || 'Unmapped' };
-    });
+    for(let i = found.hdr + 1; i < found.grid.length; i++){
+      const row = found.grid[i];
+      const key = normalizeAgentId(row[found.u]);
+      if(!key || isIgnoredUser(key)) continue;
+      map[key] = { leader: cleanValue(row[found.l]) || 'Unmapped' };
+    }
 
     STR_MAP = map;
     const n = Object.keys(STR_MAP).length;
-    setStatus('ok', `Mapping loaded — ${n} agents from "${sheetName}" — ${new Date().toLocaleTimeString()}`);
+    setStatus('ok', `Mapping loaded — ${n} agents from "${found.name}" — ${new Date().toLocaleTimeString()}`);
 
     if(RAW_ROWS.length) process(RAW_ROWS);
 
