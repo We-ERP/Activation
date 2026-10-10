@@ -1,13 +1,13 @@
 /* ==================================================================
    ACTIVATION & FOLLOW-UP — OPS CONSOLE
-   Logic: Google Sheet ("Str" tab) mapping sync + CSV ticket
-   processing into an Hour x (Group > Leader > Agent) tree.
+   Logic: agent mapping loaded from STR Loss.xlsx (in this repo) +
+   CSV ticket processing into an Hour x (Group > Leader > Agent) tree.
  ================================================================== */
 
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbytna6gz9sE31tX_i00k1v9MAp9QyvKZwGYTao_r9B8qIVW1DcXUdyOl_Zb_kmcsFO2/exec";
-const COL_USER = 3;
-const COL_GROUP = 5;
-const COL_LEADER = 12;
+const STR_FILE = "STR Loss.xlsx";      // lives in the same repo folder as index.html
+const STR_TAB = "Str";                 // falls back to the first sheet if not found
+const STR_COL_USER = "TTS User";       // must match the header text exactly
+const STR_COL_LEADER = "TL Name";
 const COOR = ["AZ217162","AA138951","AS93748","KE144207","FA236380","MO222804","SM195261"];
 const GROUP_PALETTE = ["#ff9d3d","#2dd6c4","#9b8cfb","#f472b6","#60a5fa","#34d399","#f0b429"];
 
@@ -45,32 +45,42 @@ function setStatus(kind, text){
   document.getElementById('syncText').textContent = text;
 }
 
-async function syncMapping(){
-  const tab = document.getElementById('tabName').value.trim() || 'Str';
-  setStatus('busy', `Connecting to "${tab}"...`);
+async function loadMapping(){
+  setStatus('busy', 'Loading agent mapping...');
   try{
-    const res = await fetch(`${SHEET_URL}?tab=${encodeURIComponent(tab)}`);
-    const json = await res.json();
-    if(json.status !== 'success') throw new Error(json.message || 'Unknown error from script');
+    // cache-busting query so a freshly uploaded file shows up right away
+    const res = await fetch(`${encodeURIComponent(STR_FILE)}?v=${Date.now()}`, { cache: 'no-store' });
+    if(!res.ok) throw new Error(`file not found (HTTP ${res.status})`);
 
-    STR_MAP = {};
-    json.data.forEach(record=>{
-      const vals = Object.values(record);
-      const user = cleanValue(vals[COL_USER]);
-      const key = normalizeAgentId(user);
+    const wb = XLSX.read(await res.arrayBuffer(), { type: 'array' });
+    const sheetName = wb.SheetNames.includes(STR_TAB) ? STR_TAB : wb.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: '' });
+    if(!rows.length) throw new Error(`sheet "${sheetName}" is empty`);
+
+    // find the two columns by header name (trimmed, so stray spaces don't break it)
+    const headerOf = {};
+    Object.keys(rows[0]).forEach(k => { headerOf[cleanValue(k)] = k; });
+    const userCol = headerOf[STR_COL_USER];
+    const leaderCol = headerOf[STR_COL_LEADER];
+    if(!userCol || !leaderCol){
+      throw new Error(`missing column "${!userCol ? STR_COL_USER : STR_COL_LEADER}"`);
+    }
+
+    const map = {};
+    rows.forEach(r => {
+      const key = normalizeAgentId(r[userCol]);
       if(!key || isIgnoredUser(key)) return;
-      const group = cleanValue(vals[COL_GROUP]) || 'Unmapped';
-      const leader = cleanValue(vals[COL_LEADER]) || 'Unmapped';
-      STR_MAP[key] = { group, leader };
+      map[key] = { leader: cleanValue(r[leaderCol]) || 'Unmapped' };
     });
 
+    STR_MAP = map;
     const n = Object.keys(STR_MAP).length;
-    setStatus('ok', `Synced — ${n} agents mapped from "${tab}" — ${new Date().toLocaleTimeString()}`);
+    setStatus('ok', `Mapping loaded — ${n} agents from "${sheetName}" — ${new Date().toLocaleTimeString()}`);
 
     if(RAW_ROWS.length) process(RAW_ROWS);
 
   }catch(err){
-    setStatus('err', `Couldn't reach the sheet (${err.message}) — falling back to the CSV's own added_by_leader column, grouped as "Unmapped"`);
+    setStatus('err', `Couldn't load the mapping (${err.message}) — falling back to the CSV's own leader column, grouped as "Unmapped"`);
   }
 }
 
@@ -109,7 +119,7 @@ function process(data){
 
     const mapped = STR_MAP[normalizeAgentId(user)];
     const leader = mapped ? mapped.leader : (cleanValue(r.added_by_leader) || cleanValue(r.leader) || "Unmapped");
-    const group  = mapped ? mapped.group : (cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped");
+    const group  = cleanValue(r.task_group) || cleanValue(r.taskGroup) || cleanValue(r.group) || cleanValue(r.taskGroupName) || "Unmapped";
 
     const agentKey = normalizeAgentId(user);
 
@@ -181,7 +191,7 @@ function renderFiltered(){
   if(Object.keys(GLOBAL_DATA).length === 0){
     dashboard.innerHTML = `<div class="empty-state">
       <div class="big">No tickets loaded yet</div>
-      Sync the mapping, then paste or upload the ticket export to build the board.
+      Paste or upload the ticket export to build the board.
     </div>`;
     return;
   }
@@ -604,5 +614,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById("searchInput").addEventListener("keyup", renderFiltered);
 
-  syncMapping();
+  loadMapping();
 });
