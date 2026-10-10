@@ -316,7 +316,7 @@ function renderFiltered(){
       leaderEl.open = !!search;
 
       leaderEl.innerHTML = `<summary>
-          ${l === topLeader ? '<span class="crown">👑</span>' : ''}
+          ${l === topLeader ? '<span class="crown"></span>' : ''}
           ${l}
           <span class="lmeta">
             <span>${lAgg.total} tickets</span>
@@ -569,7 +569,7 @@ function exportToExcel(){
     leaderNames.forEach(l=>{
       const agents = leaders[l];
       const lAgg = aggregate(agents);
-      rows.push([`${l === topLeader ? "👑 " : ""}${l}`, `${lAgg.total} tickets`, `${reachPct(lAgg.reached, lAgg.notReached)}% reach`, `${lAgg.points.toFixed(1)} pts`, `${Object.keys(agents).length} agents`]);
+      rows.push([`${l === topLeader ? " " : ""}${l}`, `${lAgg.total} tickets`, `${reachPct(lAgg.reached, lAgg.notReached)}% reach`, `${lAgg.points.toFixed(1)} pts`, `${Object.keys(agents).length} agents`]);
       rows.push(["Agent", ...GLOBAL_HOURS.map(h=>`${h}:00`), "Total", "Points", "Reach %"]);
       Object.keys(agents).sort((a,b)=>agents[b].total - agents[a].total).forEach(a=>{
         const u = agents[a];
